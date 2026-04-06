@@ -1,5 +1,8 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/security.php';
+
+set_security_headers();
 
 $dbFile = __DIR__ . '/lab5.sqlite';
 
@@ -26,10 +29,10 @@ try {
     }
 
     echo '<h2>Database initialized successfully.</h2>';
-    echo '<p>Created file: ' . htmlspecialchars($dbFile, ENT_QUOTES, 'UTF-8') . '</p>';
+    echo '<p>Created file: ' . h($dbFile) . '</p>';
     echo '<p><a href="index.php">Go to Lab 5 Home</a></p>';
 } catch (Throwable $e) {
     http_response_code(500);
     echo '<h2>Failed to initialize database.</h2>';
-    echo '<pre>' . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8') . '</pre>';
+    echo '<pre>' . h($e->getMessage()) . '</pre>';
 }

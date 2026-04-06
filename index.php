@@ -1,5 +1,8 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/security.php';
+
+set_security_headers();
 ?>
 <!DOCTYPE html>
 <html lang="en">

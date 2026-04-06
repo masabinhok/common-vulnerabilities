@@ -1,8 +1,11 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/security.php';
 
-$mode = ($_GET['mode'] ?? 'vuln') === 'secure' ? 'secure' : 'vuln';
-$username = $_GET['username'] ?? '';
+set_security_headers();
+
+$mode = get_mode();
+$username = trim((string)($_GET['username'] ?? ''));
 $rows = [];
 $error = '';
 $dbFile = __DIR__ . '/lab5.sqlite';
@@ -19,6 +22,10 @@ try {
                 $rows = $query->fetchAll(PDO::FETCH_ASSOC);
             }
         } else {
+            if (!is_valid_username($username)) {
+                throw new InvalidArgumentException('Username must be 1-32 chars (letters, numbers, underscore).');
+            }
+
             $stmt = $db->prepare('SELECT id, username, role FROM users WHERE username = :username');
             $stmt->bindValue(':username', $username, PDO::PARAM_STR);
             $stmt->execute();
@@ -26,7 +33,9 @@ try {
         }
     }
 } catch (Throwable $e) {
-    $error = $e->getMessage();
+    $error = $mode === 'secure'
+        ? 'Request failed. Check input format and database initialization.'
+        : $e->getMessage();
 }
 ?>
 <!DOCTYPE html>
@@ -51,9 +60,9 @@ try {
 
     <div class="box <?php echo $mode === 'vuln' ? 'vuln' : 'secure'; ?>">
         <form method="get">
-            <input type="hidden" name="mode" value="<?php echo htmlspecialchars($mode, ENT_QUOTES, 'UTF-8'); ?>">
+            <input type="hidden" name="mode" value="<?php echo h($mode); ?>">
             <label for="username">Search by username:</label>
-            <input id="username" name="username" value="<?php echo htmlspecialchars($username, ENT_QUOTES, 'UTF-8'); ?>">
+            <input id="username" name="username" value="<?php echo h($username); ?>" maxlength="32" pattern="[A-Za-z0-9_]{1,32}">
             <button type="submit">Search</button>
         </form>
         <p>Try input: <code>alice' OR '1'='1</code> in vulnerable mode.</p>
@@ -62,7 +71,7 @@ try {
     <?php if ($error !== ''): ?>
         <div class="box vuln">
             <strong>Error:</strong>
-            <pre><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></pre>
+            <pre><?php echo h($error); ?></pre>
         </div>
     <?php endif; ?>
 
@@ -81,8 +90,8 @@ try {
                     <?php foreach ($rows as $row): ?>
                         <tr>
                             <td><?php echo (int)$row['id']; ?></td>
-                            <td><?php echo htmlspecialchars((string)$row['username'], ENT_QUOTES, 'UTF-8'); ?></td>
-                            <td><?php echo htmlspecialchars((string)$row['role'], ENT_QUOTES, 'UTF-8'); ?></td>
+                            <td><?php echo h((string)$row['username']); ?></td>
+                            <td><?php echo h((string)$row['role']); ?></td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>

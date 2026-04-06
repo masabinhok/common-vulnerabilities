@@ -1,8 +1,17 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/security.php';
 
-$mode = ($_GET['mode'] ?? 'vuln') === 'secure' ? 'secure' : 'vuln';
-$comment = $_POST['comment'] ?? '';
+set_security_headers();
+
+$mode = get_mode();
+$comment = (string)($_POST['comment'] ?? '');
+$message = '';
+
+if ($mode === 'secure' && mb_strlen($comment) > 1000) {
+    $comment = mb_substr($comment, 0, 1000);
+    $message = 'Comment was truncated to 1000 characters.';
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -23,13 +32,19 @@ $comment = $_POST['comment'] ?? '';
     <p><a href="index.php">Back to Home</a></p>
 
     <div class="box <?php echo $mode === 'vuln' ? 'vuln' : 'secure'; ?>">
-        <form method="post" action="?mode=<?php echo htmlspecialchars($mode, ENT_QUOTES, 'UTF-8'); ?>">
+        <form method="post" action="?mode=<?php echo h($mode); ?>">
             <label for="comment">Leave a comment:</label><br>
-            <textarea id="comment" name="comment" rows="4" cols="60"><?php echo htmlspecialchars($comment, ENT_QUOTES, 'UTF-8'); ?></textarea><br>
+            <textarea id="comment" name="comment" rows="4" cols="60" maxlength="1000"><?php echo h($comment); ?></textarea><br>
             <button type="submit">Post</button>
         </form>
         <p>Try payload in vulnerable mode: <code>&lt;script&gt;alert('XSS')&lt;/script&gt;</code></p>
     </div>
+
+    <?php if ($message !== ''): ?>
+        <div class="box secure">
+            <strong><?php echo h($message); ?></strong>
+        </div>
+    <?php endif; ?>
 
     <div class="box">
         <h2>Rendered Output</h2>
@@ -38,7 +53,7 @@ $comment = $_POST['comment'] ?? '';
         <?php elseif ($mode === 'vuln'): ?>
             <p><?php echo $comment; ?></p>
         <?php else: ?>
-            <p><?php echo htmlspecialchars($comment, ENT_QUOTES, 'UTF-8'); ?></p>
+            <p><?php echo h($comment); ?></p>
         <?php endif; ?>
     </div>
 
